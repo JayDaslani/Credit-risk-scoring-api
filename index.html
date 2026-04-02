@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Credit Risk Predictor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #60a5fa;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        .badge {
+            display: inline-block;
+            background: #1e3a5f;
+            color: #60a5fa;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        /* Card */
+        .card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            border: 1px solid #334155;
+        }
+        .card h2 {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+        .form-group input,
+        .form-group select {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            transition: border 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        /* Credit Scores */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .slider-group label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            accent-color: #60a5fa;
+        }
+
+        /* Button */
+        .predict-btn {
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+        .predict-btn:hover {
+            background: #1d4ed8;
+        }
+        .predict-btn:disabled {
+            background: #334155;
+            cursor: not-allowed;
+        }
+
+        /* Result */
+        .result-card {
+            display: none;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            border: 2px solid;
+            margin-bottom: 24px;
+        }
+        .result-card.green {
+            background: #052e16;
+            border-color: #16a34a;
+        }
+        .result-card.yellow {
+            background: #1c1917;
+            border-color: #ca8a04;
+        }
+        .result-card.red {
+            background: #1c0a0a;
+            border-color: #dc2626;
+        }
+
+        .result-decision {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .result-card.green .result-decision { color: #4ade80; }
+        .result-card.yellow .result-decision { color: #fbbf24; }
+        .result-card.red .result-decision { color: #f87171; }
+
+        .result-prob {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 16px 0;
+        }
+        .result-card.green .result-prob { color: #4ade80; }
+        .result-card.yellow .result-prob { color: #fbbf24; }
+        .result-card.red .result-prob { color: #f87171; }
+
+        .result-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        /* Risk Meter */
+        .risk-meter {
+            margin: 20px 0;
+        }
+        .meter-bar {
+            height: 12px;
+            background: #1e293b;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .meter-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 1s ease;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: #475569;
+            font-size: 0.8rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <h1>🏦 Credit Risk Predictor</h1>
+            <p>Home Credit Default Risk Model</p>
+            <span class="badge">
+                LightGBM • ROC-AUC: 0.7707 • Kaggle: 0.760
+            </span>
+        </div>
+
+        <!-- Result (top pe dikhega) -->
+        <div class="result-card" id="resultCard">
+            <div class="result-decision" id="resultDecision"></div>
+            <div class="result-prob" id="resultProb"></div>
+            <div class="result-label">Default Probability</div>
+            <div class="risk-meter">
+                <div class="meter-bar">
+                    <div class="meter-fill"
+                         id="meterFill"></div>
+                </div>
+            </div>
+            <div class="result-label"
+                 id="resultRisk"></div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            ⏳ Analyzing application...
+        </div>
+
+        <!-- Form -->
+        <div class="card">
+            <h2>📋 Applicant Information</h2>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label>Age (Years)</label>
+                    <input type="number" id="age"
+                           value="35" min="18" max="70">
+                </div>
+
+                <div class="form-group">
+                    <label>Annual Income (₹)</label>
+                    <input type="number" id="income"
+                           value="500000">
+                </div>
+
+                <div class="form-group">
+                    <label>Loan Amount (₹)</label>
+                    <input type="number" id="loan_amount"
+                           value="1000000">
+                </div>
+
+                <div class="form-group">
+                    <label>Years Employed</label>
+                    <input type="number" id="employed_years"
+                           value="5" min="0" max="50">
+                </div>
+
+                <div class="form-group">
+                    <label>Education</label>
+                    <select id="education">
+                        <option>Higher education</option>
+                        <option>Secondary</option>
+                        <option>Incomplete higher</option>
+                        <option>Lower secondary</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Gender</label>
+                    <select id="gender">
+                        <option value="F">Female</option>
+                        <option value="M">Male</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Owns Car?</label>
+                    <select id="own_car">
+                        <option value="N">No</option>
+                        <option value="Y">Yes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Owns Property?</label>
+                    <select id="own_realty">
+                        <option value="Y">Yes</option>
+                        <option value="N">No</option>
+                    </select>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Credit Scores -->
+        <div class="card">
+            <h2>📊 External Credit Scores</h2>
+            <div style="display:flex;
+                        flex-direction:column;
+                        gap:20px;">
+
+                <div class="slider-group">
+                    <label>
+                        EXT Source 1
+                        <span id="ext1Val">0.50</span>
+                    </label>
+                    <input type="range" id="ext1"
+                           min="0" max="1" step="0.01"
+                           value="0.5"
+                           oninput="document.getElementById(
+                               'ext1Val').textContent =
+                               parseFloat(this.value).toFixed(2)">
+                </div>
+
+                <div class="slider-group">
+                    <label>
+                        EXT Source 2
+                        <span id="ext2Val">0.50</span>
+                    </label>
+                    <input type="range" id="ext2"
+                           min="0" max="1" step="0.01"
+                           value="0.5"
+                           oninput="document.getElementById(
+                               'ext2Val').textContent =
+                               parseFloat(this.value).toFixed(2)">
+                </div>
+
+                <div class="slider-group">
+                    <label>
+                        EXT Source 3
+                        <span id="ext3Val">0.50</span>
+                    </label>
+                    <input type="range" id="ext3"
+                           min="0" max="1" step="0.01"
+                           value="0.5"
+                           oninput="document.getElementById(
+                               'ext3Val').textContent =
+                               parseFloat(this.value).toFixed(2)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Predict Button -->
+        <button class="predict-btn"
+                onclick="predict()"
+                id="predictBtn">
+            🔍 Analyze Credit Risk
+        </button>
+
+        <div class="footer">
+            Built with LightGBM + FastAPI •
+            Home Credit Default Risk Dataset •
+            Kaggle Score: 0.760
+        </div>
+
+    </div>
+
+    <script>
+        async function predict() {
+            const btn = document.getElementById(
+                'predictBtn');
+            const loading = document.getElementById(
+                'loading');
+            const resultCard = document.getElementById(
+                'resultCard');
+
+            // Loading state
+            btn.disabled = true;
+            btn.textContent = '⏳ Analyzing...';
+            loading.style.display = 'block';
+            resultCard.style.display = 'none';
+
+            const payload = {
+                age: parseFloat(
+                    document.getElementById('age').value),
+                income: parseFloat(
+                    document.getElementById('income').value),
+                loan_amount: parseFloat(
+                    document.getElementById(
+                        'loan_amount').value),
+                employed_years: parseFloat(
+                    document.getElementById(
+                        'employed_years').value),
+                education: document.getElementById(
+                    'education').value,
+                gender: document.getElementById(
+                    'gender').value,
+                own_car: document.getElementById(
+                    'own_car').value,
+                own_realty: document.getElementById(
+                    'own_realty').value,
+                ext_source_1: parseFloat(
+                    document.getElementById('ext1').value),
+                ext_source_2: parseFloat(
+                    document.getElementById('ext2').value),
+                ext_source_3: parseFloat(
+                    document.getElementById('ext3').value),
+            };
+
+            try {
+                const response = await fetch(
+                    'http://localhost:8000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                // Result dikhao
+                loading.style.display = 'none';
+                resultCard.className =
+                    `result-card ${data.color}`;
+                resultCard.style.display = 'block';
+
+                document.getElementById(
+                    'resultDecision').textContent =
+                    data.decision;
+                document.getElementById(
+                    'resultProb').textContent =
+                    data.risk_percent;
+                document.getElementById(
+                    'resultRisk').textContent =
+                    data.risk_level;
+
+                // Meter fill
+                const fill = document.getElementById(
+                    'meterFill');
+                const pct = data.probability * 100;
+                fill.style.width = pct + '%';
+                fill.style.background =
+                    data.color === 'green' ? '#16a34a' :
+                    data.color === 'yellow'? '#ca8a04' :
+                    '#dc2626';
+
+                // Scroll to result
+                resultCard.scrollIntoView({
+                    behavior: 'smooth'});
+
+            } catch (error) {
+                loading.style.display = 'none';
+                alert('API Error! Make sure FastAPI ' +
+                      'server is running on port 8000');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Analyze Credit Risk';
+            }
+        }
+    </script>
+</body>
+</html>
