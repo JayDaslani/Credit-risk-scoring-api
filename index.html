@@ -277,6 +277,7 @@
                         <option>Secondary</option>
                         <option>Incomplete higher</option>
                         <option>Lower secondary</option>
+
                     </select>
                 </div>
 
@@ -414,7 +415,7 @@
 
             try {
                 const response = await fetch(
-                    'http://localhost:8000/predict', {
+    'https://credit-risk-scoring-api-xure.onrender.com/predict', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

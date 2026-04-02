@@ -3,13 +3,14 @@
 # ============================================
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse,FileResponse
 from pydantic import BaseModel,Field, ValidationError
 from typing import Literal
 import pickle
 import json
 import numpy as np
 import pandas as pd
+import os
 
 # App initialize
 app = FastAPI(
@@ -36,7 +37,9 @@ with open('feature_names.json', 'r') as f:
 print(f"✅ Model loaded!")
 print(f"✅ Features: {len(feature_names)}")
 
-
+@app.get("/")
+def home():
+    return FileResponse("index.html")
 # ============================================
 # Input Schema — Pydantic
 # ============================================
