@@ -11,6 +11,10 @@ import json
 import numpy as np
 import pandas as pd
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # App initialize
 app = FastAPI(
@@ -34,12 +38,10 @@ with open('model.pkl', 'rb') as f:
 with open('feature_names.json', 'r') as f:
     feature_names = json.load(f)
 
-print(f"✅ Model loaded!")
-print(f"✅ Features: {len(feature_names)}")
+logger.info(f"✅ Model loaded!")
+logger.info(f"✅ Features: {len(feature_names)}")
 
-@app.get("/")
-def home():
-    return FileResponse("index.html")
+
 # ============================================
 # Input Schema — Pydantic
 # ============================================
@@ -60,6 +62,17 @@ class LoanApplication(BaseModel):
     ext_source_3: float = Field(0.5, ge=0, le=1)
 
 
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(
+    request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status" : "error",
+            "message": "Invalid input data",
+            "details": exc.errors()
+        }
+    )
 # ============================================
 # Helper Function — Input Prepare karo
 # ============================================
@@ -130,24 +143,43 @@ def prepare_input(data: LoanApplication) -> pd.DataFrame:
 # ============================================
 # Routes
 # ============================================
-
 @app.get("/")
 def home():
-    return {
-        "message": "Home Credit Risk API",
-        "status": "running",
-        "docs": "/docs"
-    }
+    return FileResponse("index.html")
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "model": "loaded",
+        "version": "1.0.0"
+    }
 
+def business_validation(data):
+    # Loan income se 20x zyada nahi hona chahiye
+    if data.loan_amount > data.income * 20:
+        raise HTTPException(
+            status_code=400,
+            detail="Loan amount income se "
+                   "20x zyada nahi ho sakta!"
+        )
+    # Employment age se zyada nahi hona chahiye
+    if data.employed_years > data.age - 16:
+        raise HTTPException(
+            status_code=400,
+            detail="Employment years "
+                   "age se zyada nahi ho sakte!"
+        )
 
 @app.post("/predict")
 def predict(application: LoanApplication):
-    print(f"DEBUG: Processing request for income: {application.income}")
+    business_validation(application)
+    logger.info(
+        f"Prediction request — "
+        f"age: {application.age}, "
+        f"income: {application.income}"
+    )
     try:
         # 1. Input prepare karne ki koshish karo
         input_df = prepare_input(application)
