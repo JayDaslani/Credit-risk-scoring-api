@@ -156,20 +156,50 @@ def health():
         "version": "1.0.0"
     }
 
+
 def business_validation(data):
-    # Loan income se 20x zyada nahi hona chahiye
-    if data.loan_amount > data.income * 20:
+    # Loan to income ratio
+    loan_to_income = data.loan_amount / data.income
+
+    if loan_to_income > 10:
         raise HTTPException(
             status_code=400,
-            detail="Loan amount income se "
-                   "20x zyada nahi ho sakta!"
+            detail=f"Loan amount income se 10x "
+                   f"zyada nahi ho sakta! "
+                   f"Max loan: "
+                   f"₹{data.income * 10:,.0f}"
         )
-    # Employment age se zyada nahi hona chahiye
+
+    # Minimum loan amount
+    if data.loan_amount < 10000:
+        raise HTTPException(
+            status_code=400,
+            detail="Minimum loan amount "
+                   "₹10,000 hona chahiye!"
+        )
+
+    # Maximum loan amount — absolute cap
+    if data.loan_amount > 10000000:  # 1 Crore
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum loan amount "
+                   "₹1,00,00,000 (1 Crore) hai!"
+        )
+
+    # Employment vs age
     if data.employed_years > data.age - 16:
         raise HTTPException(
             status_code=400,
             detail="Employment years "
                    "age se zyada nahi ho sakte!"
+        )
+
+    # Minimum income
+    if data.income < 50000:
+        raise HTTPException(
+            status_code=400,
+            detail="Minimum annual income "
+                   "₹50,000 honi chahiye!"
         )
 
 @app.post("/predict")

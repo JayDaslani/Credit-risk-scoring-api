@@ -414,51 +414,51 @@
             };
 
             try {
-                const response = await fetch(
-    'https://credit-risk-scoring-api-xure.onrender.com/predict', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
+    const response = await fetch(
+        'https://credit-risk-scoring-api-xure.onrender.com/predict',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }
+    );
 
-                const data = await response.json();
+    const data = await response.json();
 
-                // Result dikhao
-                loading.style.display = 'none';
-                resultCard.className =
-                    `result-card ${data.color}`;
-                resultCard.style.display = 'block';
+    // ← YE ADD KARO
+    if (!response.ok || data.status === 'error') {
+        showError(data.detail || data.message)
+        return
+    }
 
-                document.getElementById(
-                    'resultDecision').textContent =
-                    data.decision;
-                document.getElementById(
-                    'resultProb').textContent =
-                    data.risk_percent;
-                document.getElementById(
-                    'resultRisk').textContent =
-                    data.risk_level;
+    // Normal result dikhao
+    showResult(data)
 
-                // Meter fill
-                const fill = document.getElementById(
-                    'meterFill');
-                const pct = data.probability * 100;
-                fill.style.width = pct + '%';
-                fill.style.background =
-                    data.color === 'green' ? '#16a34a' :
-                    data.color === 'yellow'? '#ca8a04' :
-                    '#dc2626';
+} catch (error) {
+    showError('Server se connect nahi ho pa raha!')
+}
 
-                // Scroll to result
-                resultCard.scrollIntoView({
-                    behavior: 'smooth'});
+// ← YE FUNCTION ADD KARO
+function showError(message) {
+    loading.style.display = 'none'
 
-            } catch (error) {
-                loading.style.display = 'none';
-                alert('API Error! Make sure FastAPI ' +
-                      'server is running on port 8000');
+    resultCard.className = 'result-card red'
+    resultCard.style.display = 'block'
+
+    document.getElementById(
+        'resultDecision').textContent = '⚠️ Invalid Input'
+    document.getElementById(
+        'resultProb').textContent = '--'
+    document.getElementById(
+        'resultRisk').textContent = message
+
+    resultCard.scrollIntoView({behavior: 'smooth'})
+
+    btn.disabled = false
+    btn.textContent = '🔍 Analyze Credit Risk'
+}
             } finally {
                 btn.disabled = false;
                 btn.textContent = '🔍 Analyze Credit Risk';
