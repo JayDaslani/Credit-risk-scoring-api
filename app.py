@@ -315,6 +315,7 @@ def predict(application: LoanApplication):
         else:
             risk_level, decision, color = "HIGH RISK", "REJECTED ❌", "red"
 
+        # Isse replace karo:
         risk_factors = get_risk_factors(
             application, probability)
 
@@ -325,11 +326,17 @@ def predict(application: LoanApplication):
             "risk_level": risk_level,
             "decision": decision,
             "color": color,
+            "risk_factors": risk_factors,
             "input_summary": {
+                "age": application.age,
                 "income": application.income,
-                "loan_amount": application.loan_amount
+                "loan_amount": application.loan_amount,
+                "employed_years": application.employed_years,
+                "education": application.education,
+                "gender": application.gender,
             }
         }
+
 
     except ValueError as ve:
         # Business logic ya missing model ke errors
