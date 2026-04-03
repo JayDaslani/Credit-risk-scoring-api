@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Credit Risk Predictor</title>
+    <title>Credit Risk Scoring Predictor</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -234,6 +234,24 @@
             </div>
             <div class="result-label"
                  id="resultRisk"></div>
+            <!-- result-card div ke andar —
+     resultRisk div ke BAAD add karo -->
+
+<div id="riskFactors"
+     style="margin-top:16px;
+            text-align:left;
+            display:none;">
+    <p style="color:#94a3b8;
+              font-size:0.85rem;
+              margin-bottom:8px;
+              font-weight:600;">
+        ⚠️ Key Risk Factors:
+    </p>
+    <ul id="factorsList"
+        style="list-style:none;
+               padding:0;">
+    </ul>
+</div>
         </div>
 
         <!-- Loading -->
@@ -372,98 +390,147 @@
     </div>
 
     <script>
-        async function predict() {
-            const btn = document.getElementById(
-                'predictBtn');
-            const loading = document.getElementById(
-                'loading');
-            const resultCard = document.getElementById(
-                'resultCard');
+    // ============================================
+    // Helper Functions — predict ke BAHAR
+    // ============================================
 
-            // Loading state
-            btn.disabled = true;
-            btn.textContent = '⏳ Analyzing...';
-            loading.style.display = 'block';
-            resultCard.style.display = 'none';
+    function showError(message) {
+        const btn = document.getElementById('predictBtn')
+        const loading = document.getElementById('loading')
+        const resultCard = document.getElementById('resultCard')
 
-            const payload = {
-                age: parseFloat(
-                    document.getElementById('age').value),
-                income: parseFloat(
-                    document.getElementById('income').value),
-                loan_amount: parseFloat(
-                    document.getElementById(
-                        'loan_amount').value),
-                employed_years: parseFloat(
-                    document.getElementById(
-                        'employed_years').value),
-                education: document.getElementById(
-                    'education').value,
-                gender: document.getElementById(
-                    'gender').value,
-                own_car: document.getElementById(
-                    'own_car').value,
-                own_realty: document.getElementById(
-                    'own_realty').value,
-                ext_source_1: parseFloat(
-                    document.getElementById('ext1').value),
-                ext_source_2: parseFloat(
-                    document.getElementById('ext2').value),
-                ext_source_3: parseFloat(
-                    document.getElementById('ext3').value),
-            };
+        loading.style.display = 'none'
+        resultCard.className = 'result-card red'
+        resultCard.style.display = 'block'
 
-            try {
-    const response = await fetch(
-        'https://credit-risk-scoring-api-xure.onrender.com/predict',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        }
-    );
+        document.getElementById(
+            'resultDecision').textContent = '⚠️ Invalid Input'
+        document.getElementById(
+            'resultProb').textContent = '--'
+        document.getElementById(
+            'resultRisk').textContent = message
 
-    const data = await response.json();
-
-    // ← YE ADD KARO
-    if (!response.ok || data.status === 'error') {
-        showError(data.detail || data.message)
-        return
+        resultCard.scrollIntoView({behavior: 'smooth'})
+        btn.disabled = false
+        btn.textContent = '🔍 Analyze Credit Risk'
     }
 
-    // Normal result dikhao
-    showResult(data)
+    function showResult(data) {
+        const loading = document.getElementById('loading')
+        const resultCard = document.getElementById('resultCard')
 
-} catch (error) {
-    showError('Server se connect nahi ho pa raha!')
-}
+        loading.style.display = 'none'
 
-// ← YE FUNCTION ADD KARO
-function showError(message) {
-    loading.style.display = 'none'
+        // Result card color set karo
+        resultCard.className = `result-card ${data.color}`
+        resultCard.style.display = 'block'
 
-    resultCard.className = 'result-card red'
-    resultCard.style.display = 'block'
+        // Values fill karo
+        document.getElementById(
+            'resultDecision').textContent = data.decision
+        document.getElementById(
+            'resultProb').textContent = data.risk_percent
+        document.getElementById(
+            'resultRisk').textContent = data.risk_level
 
-    document.getElementById(
-        'resultDecision').textContent = '⚠️ Invalid Input'
-    document.getElementById(
-        'resultProb').textContent = '--'
-    document.getElementById(
-        'resultRisk').textContent = message
+        // Meter fill karo
+        const fill = document.getElementById('meterFill')
+        const pct  = data.probability * 100
+        fill.style.width      = pct + '%'
+        fill.style.background =
+            data.color === 'green'  ? '#16a34a' :
+            data.color === 'yellow' ? '#ca8a04' : '#dc2626'
 
-    resultCard.scrollIntoView({behavior: 'smooth'})
+        // Risk factors dikhao
+        const factorsDiv = document.getElementById('riskFactors')
+        const factorsList = document.getElementById('factorsList')
 
-    btn.disabled = false
-    btn.textContent = '🔍 Analyze Credit Risk'
-}
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '🔍 Analyze Credit Risk';
-            }
+        if (data.risk_factors &&
+            data.risk_factors.length > 0 &&
+            factorsDiv && factorsList) {
+
+            factorsList.innerHTML = ''
+            data.risk_factors.forEach(factor => {
+                const li = document.createElement('li')
+                li.style.cssText = `
+                    padding: 8px 0;
+                    font-size: 0.85rem;
+                    color: #cbd5e1;
+                    border-bottom: 1px solid #334155;
+                `
+                li.textContent = factor
+                factorsList.appendChild(li)
+            })
+            factorsDiv.style.display = 'block'
         }
-    </script>
+
+        resultCard.scrollIntoView({behavior: 'smooth'})
+    }
+
+    // ============================================
+    // Main Predict Function
+    // ============================================
+    async function predict() {
+        const btn        = document.getElementById('predictBtn')
+        const loading    = document.getElementById('loading')
+        const resultCard = document.getElementById('resultCard')
+
+        // Loading state
+        btn.disabled     = true
+        btn.textContent  = '⏳ Analyzing...'
+        loading.style.display  = 'block'
+        resultCard.style.display = 'none'
+
+        const payload = {
+            age: parseFloat(
+                document.getElementById('age').value),
+            income: parseFloat(
+                document.getElementById('income').value),
+            loan_amount: parseFloat(
+                document.getElementById('loan_amount').value),
+            employed_years: parseFloat(
+                document.getElementById('employed_years').value),
+            education: document.getElementById('education').value,
+            gender: document.getElementById('gender').value,
+            own_car: document.getElementById('own_car').value,
+            own_realty: document.getElementById('own_realty').value,
+            ext_source_1: parseFloat(
+                document.getElementById('ext1').value),
+            ext_source_2: parseFloat(
+                document.getElementById('ext2').value),
+            ext_source_3: parseFloat(
+                document.getElementById('ext3').value),
+        }
+
+        try {
+            const response = await fetch(
+                'https://credit-risk-scoring-api-xure.onrender.com/predict',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                }
+            )
+
+            const data = await response.json()
+
+            if (!response.ok || data.status === 'error') {
+                showError(data.detail || data.message)
+                return
+            }
+
+            showResult(data)
+
+        } catch (error) {
+            showError('Server se connect nahi ho pa raha! ' +
+                      'Please try again.')
+        } finally {
+            btn.disabled    = false
+            btn.textContent = '🔍 Analyze Credit Risk'
+        }
+    }
+</script>
 </body>
 </html>

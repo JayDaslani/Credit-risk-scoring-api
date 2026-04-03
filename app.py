@@ -158,49 +158,135 @@ def health():
 
 
 def business_validation(data):
-    # Loan to income ratio
     loan_to_income = data.loan_amount / data.income
 
     if loan_to_income > 10:
         raise HTTPException(
             status_code=400,
-            detail=f"Loan amount income se 10x "
-                   f"zyada nahi ho sakta! "
-                   f"Max loan: "
+            detail=f"Loan amount cannot exceed 10x "
+                   f"your annual income. "
+                   f"Maximum allowed loan: "
                    f"₹{data.income * 10:,.0f}"
         )
 
-    # Minimum loan amount
     if data.loan_amount < 10000:
         raise HTTPException(
             status_code=400,
-            detail="Minimum loan amount "
-                   "₹10,000 hona chahiye!"
+            detail="Minimum loan amount is ₹10,000"
         )
 
-    # Maximum loan amount — absolute cap
-    if data.loan_amount > 10000000:  # 1 Crore
+    if data.loan_amount > 10000000:
         raise HTTPException(
             status_code=400,
-            detail="Maximum loan amount "
-                   "₹1,00,00,000 (1 Crore) hai!"
+            detail="Maximum loan amount is "
+                   "₹1,00,00,000 (1 Crore)"
         )
 
-    # Employment vs age
     if data.employed_years > data.age - 16:
         raise HTTPException(
             status_code=400,
-            detail="Employment years "
-                   "age se zyada nahi ho sakte!"
+            detail="Employment years cannot "
+                   "exceed your working age!"
         )
 
-    # Minimum income
     if data.income < 50000:
         raise HTTPException(
             status_code=400,
             detail="Minimum annual income "
-                   "₹50,000 honi chahiye!"
+                   "required is ₹50,000"
         )
+def get_risk_factors(
+        data: LoanApplication,
+        probability: float) -> list:
+
+    factors = []
+
+    # Age
+    if data.age < 25:
+        factors.append(
+            "🔴 Young age group (20-25) — "
+            "highest default risk (12.3%)"
+        )
+    elif data.age < 30:
+        factors.append(
+            "🟡 Age group 25-30 — "
+            "above average risk"
+        )
+
+    # Employment
+    if data.employed_years < 1:
+        factors.append(
+            "🔴 Less than 1 year of employment — "
+            "unstable income history"
+        )
+    elif data.employed_years < 3:
+        factors.append(
+            "🟡 Less than 3 years employed — "
+            "limited work history"
+        )
+
+    # Loan to income ratio
+    ratio = data.loan_amount / data.income
+    if ratio > 5:
+        factors.append(
+            f"🔴 High loan-to-income ratio "
+            f"({ratio:.1f}x) — significant burden"
+        )
+    elif ratio > 3:
+        factors.append(
+            f"🟡 Moderate loan-to-income ratio "
+            f"({ratio:.1f}x)"
+        )
+
+    # Credit scores
+    avg_ext = (data.ext_source_1 +
+               data.ext_source_2 +
+               data.ext_source_3) / 3
+    if avg_ext < 0.3:
+        factors.append(
+            "🔴 Low external credit scores — "
+            "poor credit history"
+        )
+    elif avg_ext < 0.45:
+        factors.append(
+            "🟡 Below average credit scores"
+        )
+
+    # Gender
+    if data.gender == 'M':
+        factors.append(
+            "🟡 Male applicants have statistically "
+            "higher default rate (10.1% vs 7.0%)"
+        )
+
+    # Education
+    edu_risk = {
+        'Lower secondary':
+            "🔴 Lower secondary education — "
+            "highest risk group (10.9% default rate)",
+        'Secondary':
+            "🟡 Secondary education — "
+            "above average risk",
+        'Incomplete higher':
+            "🟡 Incomplete higher education",
+        'Higher education':
+            "🟢 Higher education — "
+            "low risk group (5.4% default rate)",
+        'Academic degree':
+            "🟢 Academic degree — "
+            "lowest risk group (1.8% default rate)",
+    }
+    if data.education in edu_risk:
+        factors.append(edu_risk[data.education])
+
+    # Assets
+    if data.own_car == 'N' and data.own_realty == 'N':
+        factors.append(
+            "🟡 No assets (car/property) — "
+            "limited financial stability"
+        )
+
+    return factors
 
 @app.post("/predict")
 def predict(application: LoanApplication):
@@ -228,6 +314,9 @@ def predict(application: LoanApplication):
             risk_level, decision, color = "MEDIUM RISK", "REVIEW NEEDED ⚠️", "yellow"
         else:
             risk_level, decision, color = "HIGH RISK", "REJECTED ❌", "red"
+
+        risk_factors = get_risk_factors(
+            application, probability)
 
         return {
             "status": "success",
