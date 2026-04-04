@@ -45,7 +45,18 @@ print("Loading SHAP explainer...")
 explainer = shap.TreeExplainer(model)
 print("✅ SHAP explainer loaded!")
 
-
+USER_FEATURES = [
+    'AGE_YEARS',
+    'EMPLOYED_YEARS',
+    'AMT_CREDIT',
+    'EXT_SOURCE_1',
+    'EXT_SOURCE_2',
+    'EXT_SOURCE_3',
+    'CODE_GENDER_M',
+    'FLAG_OWN_CAR_Y',
+    'FLAG_OWN_REALTY_Y',
+    'CREDIT_TERM',
+]
 # ============================================
 # Input Schema — Pydantic
 # ============================================
@@ -344,7 +355,8 @@ def predict(application: LoanApplication):
 
         # Sort by absolute value
         sorted_shap = sorted(
-            shap_dict.items(),
+            [(f, v) for f, v in shap_dict.items()
+             if f in USER_FEATURES],
             key=lambda x: abs(x[1]),
             reverse=True
         )[:5]
