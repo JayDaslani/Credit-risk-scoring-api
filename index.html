@@ -299,6 +299,19 @@
                 </div>
 
                 <div class="form-group">
+    <label>Loan Repayment Period</label>
+    <select id="credit_term">
+        <option value="12">12 Months (1 Year)</option>
+        <option value="24">24 Months (2 Years)</option>
+        <option value="36" selected>
+            36 Months (3 Years)
+        </option>
+        <option value="48">48 Months (4 Years)</option>
+        <option value="60">60 Months (5 Years)</option>
+    </select>
+</div>
+
+                <div class="form-group">
                     <label>Years Employed</label>
                     <input type="number" id="employed_years"
                            value="5" min="0" max="50">
@@ -610,6 +623,8 @@ async function predict() {
             document.getElementById('loan_amount').value),
         employed_years: parseFloat(
             document.getElementById('employed_years').value),
+        credit_term: parseFloat(
+            document.getElementById('credit_term').value),
         education: document.getElementById('education').value,
         gender   : document.getElementById('gender').value,
         own_car  : document.getElementById('own_car').value,

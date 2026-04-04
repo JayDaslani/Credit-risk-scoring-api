@@ -52,7 +52,6 @@ USER_FEATURES = [
     'EXT_SOURCE_1',
     'EXT_SOURCE_2',
     'EXT_SOURCE_3',
-    'CODE_GENDER_M',
     'FLAG_OWN_CAR_Y',
     'FLAG_OWN_REALTY_Y',
     'CREDIT_TERM',
@@ -68,6 +67,7 @@ class LoanApplication(BaseModel):
     income: float = Field(..., gt=0, description="Income must be positive")
     loan_amount: float = Field(..., gt=0)
     employed_years: float = Field(..., ge=0, le=50)
+    credit_term: float = Field(36, ge=6, le=60,description="Loan repayment in months")
     education: Literal['Higher education', 'Secondary', 'Incomplete higher', 'Lower secondary', 'Academic degree']
     gender: Literal['M', 'F'] = Field(..., description="Gender must be M or F")
     own_car: Literal['Y', 'N']
@@ -100,6 +100,7 @@ def prepare_input(data: LoanApplication) -> pd.DataFrame:
     input_dict['AGE_YEARS'] = data.age
     input_dict['EMPLOYED_YEARS'] = data.employed_years
     input_dict['AMT_CREDIT'] = data.loan_amount
+    input_dict['CREDIT_TERM'] = data.credit_term
     input_dict['EXT_SOURCE_1'] = data.ext_source_1
     input_dict['EXT_SOURCE_2'] = data.ext_source_2
     input_dict['EXT_SOURCE_3'] = data.ext_source_3
@@ -127,10 +128,13 @@ def prepare_input(data: LoanApplication) -> pd.DataFrame:
             input_dict['EXT_SOURCE_MEAN'] *
             data.employed_years
     )
+    input_dict['EXT_MEAN_X_CREDIT_TERM'] = (
+            input_dict['EXT_SOURCE_MEAN'] *
+            (1 / (data.credit_term + 1))
+    )
 
     # Categorical features
-    if data.gender == 'M':
-        input_dict['CODE_GENDER_M'] = 1
+
     if data.own_car == 'Y':
         input_dict['FLAG_OWN_CAR_Y'] = 1
     if data.own_realty == 'Y':
@@ -268,11 +272,7 @@ def get_risk_factors(
         )
 
     # Gender
-    if data.gender == 'M':
-        factors.append(
-            "🟡 Male applicants have statistically "
-            "higher default rate (10.1% vs 7.0%)"
-        )
+
 
     # Education
     edu_risk = {
