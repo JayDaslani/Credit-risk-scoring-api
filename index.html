@@ -406,225 +406,253 @@
     </div>
 
     <script>
-    // ============================================
-    // Helper Functions — predict ke BAHAR
-    // ============================================
+// ============================================
+// Feature Name Map
+// ============================================
+const NAME_MAP = {
+    'ID PUBLISH YEARS'         : 'ID Document Age',
+    'CODE GENDER M'            : 'Gender: Male',
+    'APARTMENTS AVG'           : 'Apartment Size',
+    'BUREAU RECENT CREDIT'     : 'Recent Credit History',
+    'HOUR APPR PROCESS START'  : 'Application Hour',
+    'EXT SOURCE MEAN'          : 'Credit Score (Avg)',
+    'EXT SOURCE MIN'           : 'Credit Score (Min)',
+    'EXT SOURCE STD'           : 'Credit Score Consistency',
+    'EXT MEAN X AGE'           : 'Credit Score × Age',
+    'EXT MEAN X EMPLOY'        : 'Credit Score × Employment',
+    'EXT MEAN X CREDIT TERM'   : 'Credit Score × Loan Term',
+    'AGE YEARS'                : 'Applicant Age',
+    'EMPLOYED YEARS'           : 'Employment Duration',
+    'AMT CREDIT'               : 'Loan Amount',
+    'CREDIT TERM'              : 'Loan Term (Months)',
+    'FLAG OWN CAR Y'           : 'Owns Car: Yes',
+    'FLAG OWN REALTY Y'        : 'Owns Property: Yes',
+    'FLAG DOCUMENT 3'          : 'Document Submitted',
+    'PHONE CHANGE YEARS'       : 'Phone Change History',
+    'REGISTRATION YEARS'       : 'Registration Age',
+    'SOCIAL CIRCLE RISK'       : 'Social Circle Risk',
+    'BUREAU RECENT OVERDUE'    : 'Recent Overdue History',
+    'BUREAU AVG CREDIT AGE'    : 'Credit History Length',
+    'BUREAU ACTIVE COUNT'      : 'Active Loans Count',
+    'REGION RATING CLIENT W CITY': 'Region Risk Rating',
+    'REG CITY NOT WORK CITY'   : 'Lives Away From Work',
+    'NAME EDUCATION TYPE HIGHER EDUCATION':
+                                 'Education: Higher',
+    'NAME EDUCATION TYPE SECONDARY / SECONDARY SPECIAL':
+                                 'Education: Secondary',
+    'NAME CONTRACT TYPE REVOLVING LOANS':
+                                 'Contract: Revolving',
+    'NAME FAMILY STATUS MARRIED': 'Married',
+    'ORG RISK GROUP LOW RISK'  : 'Org: Low Risk',
+    'ORG RISK GROUP HIGH RISK' : 'Org: High Risk',
+}
 
-    function showError(message) {
-        const btn = document.getElementById('predictBtn')
-        const loading = document.getElementById('loading')
-        const resultCard = document.getElementById('resultCard')
+function getCleanName(featureName) {
+    const upper = featureName
+        .replace(/_/g, ' ')
+        .toUpperCase()
+    return NAME_MAP[upper] ||
+           featureName.replace(/_/g, ' ')
+}
 
-        loading.style.display = 'none'
-        resultCard.className = 'result-card red'
-        resultCard.style.display = 'block'
+// ============================================
+// Show Error
+// ============================================
+function showError(message) {
+    const btn        = document.getElementById('predictBtn')
+    const loading    = document.getElementById('loading')
+    const resultCard = document.getElementById('resultCard')
 
-        document.getElementById(
-            'resultDecision').textContent = '⚠️ Invalid Input'
-        document.getElementById(
-            'resultProb').textContent = '--'
-        document.getElementById(
-            'resultRisk').textContent = message
+    loading.style.display   = 'none'
+    resultCard.className    = 'result-card red'
+    resultCard.style.display = 'block'
 
-        resultCard.scrollIntoView({behavior: 'smooth'})
-        btn.disabled = false
-        btn.textContent = '🔍 Analyze Credit Risk'
+    document.getElementById(
+        'resultDecision').textContent = '⚠️ Invalid Input'
+    document.getElementById(
+        'resultProb').textContent = '--'
+    document.getElementById(
+        'resultRisk').textContent = message
+
+    resultCard.scrollIntoView({behavior: 'smooth'})
+    btn.disabled    = false
+    btn.textContent = '🔍 Analyze Credit Risk'
+}
+
+// ============================================
+// Show Result
+// ============================================
+function showResult(data) {
+    const loading    = document.getElementById('loading')
+    const resultCard = document.getElementById('resultCard')
+
+    loading.style.display = 'none'
+
+    // Color + display
+    resultCard.className     = `result-card ${data.color}`
+    resultCard.style.display = 'block'
+
+    // Values
+    document.getElementById(
+        'resultDecision').textContent = data.decision
+    document.getElementById(
+        'resultProb').textContent = data.risk_percent
+    document.getElementById(
+        'resultRisk').textContent = data.risk_level
+
+    // Meter
+    const fill = document.getElementById('meterFill')
+    fill.style.width = (data.probability * 100) + '%'
+    fill.style.background =
+        data.color === 'green'  ? '#16a34a' :
+        data.color === 'yellow' ? '#ca8a04' : '#dc2626'
+
+    // Risk Factors
+    const factorsDiv  = document.getElementById('riskFactors')
+    const factorsList = document.getElementById('factorsList')
+
+    if (data.risk_factors &&
+        data.risk_factors.length > 0) {
+        factorsList.innerHTML = ''
+        data.risk_factors.forEach(factor => {
+            const li = document.createElement('li')
+            li.style.cssText = `
+                padding: 8px 0;
+                font-size: 0.85rem;
+                color: #cbd5e1;
+                border-bottom: 1px solid #334155;
+            `
+            li.textContent = factor
+            factorsList.appendChild(li)
+        })
+        factorsDiv.style.display = 'block'
+    } else {
+        factorsDiv.style.display = 'none'
     }
 
-    function showResult(data) {
-    const loading = document.getElementById('loading');
-    const resultCard = document.getElementById('resultCard');
+    // SHAP Explanation
+    const shapDiv  = document.getElementById('shapExplanation')
+    const shapBars = document.getElementById('shapBars')
 
-    loading.style.display = 'none';
+    if (data.shap_explanation &&
+        data.shap_explanation.length > 0) {
 
-    // 1. Result card color aur display
-    resultCard.className = `result-card ${data.color}`;
-    resultCard.style.display = 'block';
+        shapBars.innerHTML = ''
 
-    // 2. Text Values fill karo
-    document.getElementById('resultDecision').textContent = data.decision;
-    document.getElementById('resultProb').textContent = data.risk_percent;
-    document.getElementById('resultRisk').textContent = data.risk_level;
-
-    // 3. Progress Bar (Meter) fill karo
-    const fill = document.getElementById('meterFill');
-    const pct = data.probability * 100;
-    fill.style.width = pct + '%';
-    fill.style.background = data.color === 'green' ? '#16a34a' : data.color === 'yellow' ? '#ca8a04' : '#dc2626';
-
-    // 4. SHAP Explanation Logic (Ab ye function ke ANDAR hai)
-    const shapDiv = document.getElementById('shapExplanation');
-    const shapBars = document.getElementById('shapBars');
-
-    if (data.shap_explanation && data.shap_explanation.length > 0) {
-        shapBars.innerHTML = '';
-
-        // Find max impact for scaling the bars
-        const maxImpact = Math.max(...data.shap_explanation.map(s => Math.abs(s.impact)));
+        const maxImpact = Math.max(
+            ...data.shap_explanation.map(
+                s => Math.abs(s.impact)))
 
         data.shap_explanation.forEach(item => {
-            const absImpact = Math.abs(item.impact);
-            const displayPct = (absImpact / maxImpact * 100).toFixed(1);
-            const color = item.impact > 0 ? '#ef4444' : '#22c55e'; // Red = bad, Green = good
-            const arrow = item.impact > 0 ? '↑' : '↓';
+            const pct   = (Math.abs(item.impact) /
+                           maxImpact * 100).toFixed(1)
+            const color = item.impact > 0
+                ? '#ef4444' : '#22c55e'
+            const arrow = item.impact > 0 ? '↑' : '↓'
+            const name  = getCleanName(item.feature)
 
             shapBars.innerHTML += `
                 <div style="margin-bottom:12px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                        <span style="font-size:0.8rem; color:#cbd5e1;">${item.feature.replace(/_/g, ' ')}</span>
-                        <span style="font-size:0.8rem; color:${color}; font-weight:600;">${arrow}</span>
+                    <div style="display:flex;
+                                justify-content:space-between;
+                                margin-bottom:4px;">
+                        <span style="font-size:0.8rem;
+                                     color:#cbd5e1;">
+                            ${name}
+                        </span>
+                        <span style="font-size:0.8rem;
+                                     color:${color};
+                                     font-weight:600;">
+                            ${item.direction}
+                        </span>
                     </div>
-                    <div style="background:#0f172a; border-radius:4px; height:8px; overflow:hidden;">
-                        <div style="width:${displayPct}%; height:100%; background:${color}; border-radius:4px; transition:width 1s ease;"></div>
+                    <div style="background:#0f172a;
+                                border-radius:4px;
+                                height:8px;
+                                overflow:hidden;">
+                        <div style="width:${pct}%;
+                                    height:100%;
+                                    background:${color};
+                                    border-radius:4px;
+                                    transition:width 1s ease;">
+                        </div>
                     </div>
                 </div>
-            `;
-        });
-        shapDiv.style.display = 'block';
+            `
+        })
+        shapDiv.style.display = 'block'
     } else {
-        shapDiv.style.display = 'none';
+        shapDiv.style.display = 'none'
     }
 
-    resultCard.scrollIntoView({ behavior: 'smooth' });
-} // <--- Function yahan band hona chahiye
-    // Risk factors ke baad ye add karo
-const shapDiv  = document.getElementById('shapExplanation')
-const shapBars = document.getElementById('shapBars')
-
-if (data.shap_explanation &&
-    data.shap_explanation.length > 0 &&
-    shapDiv && shapBars) {
-
-    shapBars.innerHTML = ''
-
-    // Max impact for scaling
-    const maxImpact = Math.max(
-        ...data.shap_explanation.map(
-            s => s.abs_impact))
-
-    data.shap_explanation.forEach(item => {
-        const pct = (item.abs_impact /
-                     maxImpact * 100).toFixed(1)
-        const color = item.impact > 0
-            ? '#ef4444'   // Red = increases risk
-            : '#22c55e'   // Green = decreases risk
-        const arrow = item.impact > 0 ? '↑' : '↓'
-
-        // Feature name clean karo
-        const cleanName = item.feature
-            .replace(/_/g, ' ')
-            .replace('NAME EDUCATION TYPE', 'Education:')
-            .replace('CODE GENDER M', 'Gender: Male')
-            .replace('FLAG OWN CAR Y', 'Owns Car')
-            .replace('FLAG OWN REALTY Y', 'Owns Property')
-            .replace('NAME CONTRACT TYPE', 'Contract:')
-            .replace('ORG RISK GROUP', 'Org Risk:')
-
-        shapBars.innerHTML += `
-            <div style="margin-bottom:12px;">
-                <div style="display:flex;
-                            justify-content:space-between;
-                            margin-bottom:4px;">
-                    <span style="font-size:0.8rem;
-                                 color:#cbd5e1;">
-                        ${cleanName}
-                    </span>
-                    <span style="font-size:0.8rem;
-                                 color:${color};
-                                 font-weight:600;">
-                        ${arrow} ${item.direction}
-                    </span>
-                </div>
-                <div style="background:#0f172a;
-                            border-radius:4px;
-                            height:8px;
-                            overflow:hidden;">
-                    <div style="width:${pct}%;
-                                height:100%;
-                                background:${color};
-                                border-radius:4px;
-                                transition:width 1s ease;">
-                    </div>
-                </div>
-            </div>
-        `
-    })
-
-    shapDiv.style.display = 'block'
+    resultCard.scrollIntoView({behavior: 'smooth'})
 }
 
-    // ============================================
-    // Main Predict Function
-    // ============================================
-    async function predict() {
-        const btn        = document.getElementById('predictBtn')
-        const loading    = document.getElementById('loading')
-        const resultCard = document.getElementById('resultCard')
+// ============================================
+// Main Predict Function
+// ============================================
+async function predict() {
+    const btn        = document.getElementById('predictBtn')
+    const loading    = document.getElementById('loading')
+    const resultCard = document.getElementById('resultCard')
 
-        // Loading state
-        btn.disabled     = true
-        btn.textContent  = '⏳ Analyzing...'
-        loading.style.display  = 'block'
-        resultCard.style.display = 'none'
+    btn.disabled            = true
+    btn.textContent         = '⏳ Analyzing...'
+    loading.style.display   = 'block'
+    resultCard.style.display = 'none'
 
-        const payload = {
-            age: parseFloat(
-                document.getElementById('age').value),
-            income: parseFloat(
-                document.getElementById('income').value),
-            loan_amount: parseFloat(
-                document.getElementById('loan_amount').value),
-            employed_years: parseFloat(
-                document.getElementById('employed_years').value),
-            education: document.getElementById('education').value,
-            gender: document.getElementById('gender').value,
-            own_car: document.getElementById('own_car').value,
-            own_realty: document.getElementById('own_realty').value,
-            ext_source_1: parseFloat(
-                document.getElementById('ext1').value),
-            ext_source_2: parseFloat(
-                document.getElementById('ext2').value),
-            ext_source_3: parseFloat(
-                document.getElementById('ext3').value),
-        }
-        // Automatically detect karo
-const API_URL = window.location.hostname === 'localhost' ||
-                window.location.hostname === '127.0.0.1' ||
-                window.location.hostname === '0.0.0.0'
-    ? 'http://127.0.0.1:8000/predict'
-    : 'https://credit-risk-scoring-api-xure.onrender.com/predict'
-
-
-
-        try {
-            const response = await fetch(
-                API_URL,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            )
-
-            const data = await response.json()
-
-            if (!response.ok || data.status === 'error') {
-                showError(data.detail || data.message)
-                return
-            }
-
-            showResult(data)
-
-        } catch (error) {
-            showError('Server se connect nahi ho pa raha! ' +
-                      'Please try again.')
-        } finally {
-            btn.disabled    = false
-            btn.textContent = '🔍 Analyze Credit Risk'
-        }
+    const payload = {
+        age: parseFloat(
+            document.getElementById('age').value),
+        income: parseFloat(
+            document.getElementById('income').value),
+        loan_amount: parseFloat(
+            document.getElementById('loan_amount').value),
+        employed_years: parseFloat(
+            document.getElementById('employed_years').value),
+        education: document.getElementById('education').value,
+        gender   : document.getElementById('gender').value,
+        own_car  : document.getElementById('own_car').value,
+        own_realty: document.getElementById('own_realty').value,
+        ext_source_1: parseFloat(
+            document.getElementById('ext1').value),
+        ext_source_2: parseFloat(
+            document.getElementById('ext2').value),
+        ext_source_3: parseFloat(
+            document.getElementById('ext3').value),
     }
+
+    const API_URL =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '0.0.0.0'
+        ? 'http://127.0.0.1:8000/predict'
+        : 'https://credit-risk-scoring-api-xure.onrender.com/predict'
+
+    try {
+        const response = await fetch(API_URL, {
+            method : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body   : JSON.stringify(payload)
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || data.status === 'error') {
+            showError(data.detail || data.message)
+            return
+        }
+
+        showResult(data)
+
+    } catch (error) {
+        showError(
+            'Cannot connect to server! Please try again.')
+    } finally {
+        btn.disabled    = false
+        btn.textContent = '🔍 Analyze Credit Risk'
+    }
+}
 </script>
 </body>
 </html>
