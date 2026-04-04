@@ -473,14 +473,14 @@
 // Feature Name Map
 // ============================================
 const NAME_MAP = {
+    'EXT SOURCE 1' : 'CIBIL Score (Bureau 1)',
+    'EXT SOURCE 2' : 'CIBIL Score (Bureau 2)',
+    'EXT SOURCE 3' : 'CIBIL Score (Bureau 3)',
     'ID PUBLISH YEARS'         : 'ID Document Age',
     'CODE GENDER M'            : 'Gender: Male',
     'APARTMENTS AVG'           : 'Apartment Size',
     'BUREAU RECENT CREDIT'     : 'Recent Credit History',
     'HOUR APPR PROCESS START'  : 'Application Hour',
-    'EXT SOURCE 1'             : 'CIBIL Score (Bureau 1)',
-    'EXT SOURCE 2'             : 'CIBIL Score (Bureau 2)',
-    'EXT SOURCE 3'             : 'CIBIL Score (Bureau 3)',
     'EXT SOURCE MEAN'          : 'Cibil Score (Avg)',
     'EXT SOURCE MIN'           : 'Cibil Score (Min)',
     'EXT SOURCE STD'           : 'Cibil Score Consistency',
@@ -698,6 +698,7 @@ async function predict() {
         loan_amount: parseFloat(document.getElementById('loan_amount').value),
         employed_years: parseFloat(document.getElementById('employed_years').value),
         // Note: Check karo ki aapki API 'credit_term' accept karti hai ya nahi
+        credit_term: parseFloat(document.getElementById('credit_term').value),
         education: document.getElementById('education').value,
         gender: document.getElementById('gender').value,
         own_car: document.getElementById('own_car').value,
