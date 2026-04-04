@@ -250,6 +250,25 @@
                    padding:0;">
         </ul>
     </div>
+    <!-- Suggestions -->
+<div id="suggestions"
+     style="margin-top:16px;
+            text-align:left;
+            display:none;
+            border-top:1px solid #334155;
+            padding-top:16px;">
+    <p style="color:#94a3b8;
+              font-size:0.85rem;
+              margin-bottom:8px;
+              font-weight:600;">
+        💡 Recommendations:
+    </p>
+    <ul id="suggestionsList"
+        style="list-style:none;
+               padding:0;">
+    </ul>
+</div>
+
     <!-- ← YAHAN TAK -->
     <!-- SHAP Explanation -->
 <div id="shapExplanation"
@@ -297,7 +316,17 @@
                     <input type="number" id="loan_amount"
                            value="1000000">
                 </div>
-
+                <div class="form-group">
+    <label>Loan Type</label>
+    <select id="contract_type">
+        <option value="Cash loans">
+            Regular Loan (Personal/Home/Medical)
+        </option>
+        <option value="Revolving loans">
+            Credit Card / Line of Credit
+        </option>
+    </select>
+</div>
                 <div class="form-group">
     <label>Loan Repayment Period</label>
     <select id="credit_term">
@@ -595,6 +624,30 @@ function showResult(data) {
     } else {
         factorsDiv.style.display = 'none'
     }
+    // Suggestions
+const suggestionsDiv  = document.getElementById(
+    'suggestions')
+const suggestionsList = document.getElementById(
+    'suggestionsList')
+
+if (data.suggestions &&
+    data.suggestions.length > 0) {
+    suggestionsList.innerHTML = ''
+    data.suggestions.forEach(suggestion => {
+        const li = document.createElement('li')
+        li.style.cssText = `
+            padding: 8px 0;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            border-bottom: 1px solid #334155;
+        `
+        li.textContent = suggestion
+        suggestionsList.appendChild(li)
+    })
+    suggestionsDiv.style.display = 'block'
+} else {
+    suggestionsDiv.style.display = 'none'
+}
 
     // SHAP Explanation
     const shapDiv  = document.getElementById('shapExplanation')
@@ -696,6 +749,7 @@ async function predict() {
         age: parseFloat(document.getElementById('age').value),
         income: parseFloat(document.getElementById('income').value),
         loan_amount: parseFloat(document.getElementById('loan_amount').value),
+        contract_type: document.getElementById('contract_type').value,
         employed_years: parseFloat(document.getElementById('employed_years').value),
         // Note: Check karo ki aapki API 'credit_term' accept karti hai ya nahi
         credit_term: parseFloat(document.getElementById('credit_term').value),

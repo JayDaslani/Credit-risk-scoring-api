@@ -66,6 +66,7 @@ class LoanApplication(BaseModel):
     age: int = Field(..., ge=18, le=100, description="Age must be between 18 and 100")
     income: float = Field(..., gt=0, description="Income must be positive")
     loan_amount: float = Field(..., gt=0)
+    contract_type: Literal['Cash loans','Revolving loans'] = 'Cash loans'
     employed_years: float = Field(..., ge=0, le=50)
     credit_term: float = Field(36, ge=6, le=60,description="Loan repayment in months")
     education: Literal['Higher education', 'Secondary', 'Incomplete higher', 'Lower secondary', 'Academic degree']
@@ -104,6 +105,12 @@ def prepare_input(data: LoanApplication) -> pd.DataFrame:
     input_dict['EXT_SOURCE_1'] = data.ext_source_1
     input_dict['EXT_SOURCE_2'] = data.ext_source_2
     input_dict['EXT_SOURCE_3'] = data.ext_source_3
+
+    # Contract type
+    if data.contract_type == 'Revolving loans':
+        col = 'NAME_CONTRACT_TYPE_Revolving_loans'
+        if col in input_dict:
+            input_dict[col] = 1
 
     # Engineered features calculate karo
     input_dict['EXT_SOURCE_MEAN'] = np.mean([
@@ -214,6 +221,22 @@ def business_validation(data):
             detail="Minimum annual income "
                    "required is ₹50,000"
         )
+    monthly_income = data.income / 12
+    monthly_emi = data.loan_amount / data.credit_term
+
+    emi_ratio = monthly_emi / monthly_income
+
+    if emi_ratio > 0.5:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Monthly EMI ₹{monthly_emi:,.0f} "
+                   f"exceeds 50% of monthly income "
+                   f"₹{monthly_income:,.0f}. "
+                   f"Please reduce loan amount or "
+                   f"increase repayment period."
+        )
+
+
 def get_risk_factors(
         data: LoanApplication,
         probability: float) -> list:
@@ -323,6 +346,86 @@ def predict(application: LoanApplication):
         f"age: {application.age}, "
         f"income: {application.income}"
     )
+
+    def get_suggestions(
+            data: LoanApplication,
+            probability: float,
+            decision: str) -> list:
+
+        suggestions = []
+
+        if decision == "APPROVED ✅":
+            suggestions.append(
+                "✅ Your application looks strong!"
+            )
+            # CIBIL improvement
+            avg_ext = (data.ext_source_1 +
+                       data.ext_source_2 +
+                       data.ext_source_3) / 3
+            cibil = int(avg_ext * 600 + 300)
+
+            if cibil < 750:
+                suggestions.append(
+                    f"💡 Improve CIBIL score to 750+ "
+                    f"for better loan terms"
+                )
+            else:
+                suggestions.append(
+                    "💡 Maintain your excellent "
+                    "CIBIL score for future loans"
+                )
+
+            # Employment suggestion
+            if data.employed_years < 3:
+                suggestions.append(
+                    "💡 More employment history will "
+                    "strengthen future applications"
+                )
+
+        else:
+            suggestions.append(
+                "❌ Here's how to improve your "
+                "application:"
+            )
+
+            # CIBIL
+            avg_ext = (data.ext_source_1 +
+                       data.ext_source_2 +
+                       data.ext_source_3) / 3
+            cibil = int(avg_ext * 600 + 300)
+
+            if cibil < 700:
+                suggestions.append(
+                    f"📈 Improve CIBIL score from "
+                    f"~{cibil} to 700+ by paying "
+                    f"bills on time"
+                )
+
+            # Loan amount
+            ratio = data.loan_amount / data.income
+            if ratio > 5:
+                suggested_loan = int(data.income * 3)
+                suggestions.append(
+                    f"💰 Reduce loan amount to "
+                    f"₹{suggested_loan:,} "
+                    f"(3x your income)"
+                )
+
+            # Employment
+            if data.employed_years < 2:
+                suggestions.append(
+                    "💼 Build at least 2 years of "
+                    "stable employment history"
+                )
+
+            # Credit term
+            if data.credit_term < 36:
+                suggestions.append(
+                    "📅 Consider longer repayment "
+                    "period to reduce monthly burden"
+                )
+
+        return suggestions
     try:
         # 1. Input prepare karne ki koshish karo
         input_df = prepare_input(application)
@@ -345,6 +448,9 @@ def predict(application: LoanApplication):
         # Isse replace karo:
         risk_factors = get_risk_factors(
             application, probability)
+
+        suggestions = get_suggestions(
+            application, probability, decision)
 
         # SHAP Explanation
         shap_values = explainer.shap_values(input_df)
