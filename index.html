@@ -251,6 +251,23 @@
         </ul>
     </div>
     <!-- ← YAHAN TAK -->
+    <!-- SHAP Explanation -->
+<div id="shapExplanation"
+     style="margin-top:20px;
+            text-align:left;
+            display:none;
+            border-top:1px solid #334155;
+            padding-top:16px;">
+    <p style="color:#94a3b8;
+              font-size:0.85rem;
+              margin-bottom:12px;
+              font-weight:600;
+              letter-spacing:1px;
+              text-transform:uppercase;">
+        🤖 AI Explanation (SHAP):
+    </p>
+    <div id="shapBars"></div>
+</div>
 
 </div>
         <!-- Loading -->
@@ -415,56 +432,126 @@
     }
 
     function showResult(data) {
-        const loading = document.getElementById('loading')
-        const resultCard = document.getElementById('resultCard')
+    const loading = document.getElementById('loading');
+    const resultCard = document.getElementById('resultCard');
 
-        loading.style.display = 'none'
+    loading.style.display = 'none';
 
-        // Result card color set karo
-        resultCard.className = `result-card ${data.color}`
-        resultCard.style.display = 'block'
+    // 1. Result card color aur display
+    resultCard.className = `result-card ${data.color}`;
+    resultCard.style.display = 'block';
 
-        // Values fill karo
-        document.getElementById(
-            'resultDecision').textContent = data.decision
-        document.getElementById(
-            'resultProb').textContent = data.risk_percent
-        document.getElementById(
-            'resultRisk').textContent = data.risk_level
+    // 2. Text Values fill karo
+    document.getElementById('resultDecision').textContent = data.decision;
+    document.getElementById('resultProb').textContent = data.risk_percent;
+    document.getElementById('resultRisk').textContent = data.risk_level;
 
-        // Meter fill karo
-        const fill = document.getElementById('meterFill')
-        const pct  = data.probability * 100
-        fill.style.width      = pct + '%'
-        fill.style.background =
-            data.color === 'green'  ? '#16a34a' :
-            data.color === 'yellow' ? '#ca8a04' : '#dc2626'
+    // 3. Progress Bar (Meter) fill karo
+    const fill = document.getElementById('meterFill');
+    const pct = data.probability * 100;
+    fill.style.width = pct + '%';
+    fill.style.background = data.color === 'green' ? '#16a34a' : data.color === 'yellow' ? '#ca8a04' : '#dc2626';
 
-        // Risk factors dikhao
-        const factorsDiv = document.getElementById('riskFactors')
-        const factorsList = document.getElementById('factorsList')
+    // 4. SHAP Explanation Logic (Ab ye function ke ANDAR hai)
+    const shapDiv = document.getElementById('shapExplanation');
+    const shapBars = document.getElementById('shapBars');
 
-        if (data.risk_factors &&
-            data.risk_factors.length > 0 &&
-            factorsDiv && factorsList) {
+    if (data.shap_explanation && data.shap_explanation.length > 0) {
+        shapBars.innerHTML = '';
 
-            factorsList.innerHTML = ''
-            data.risk_factors.forEach(factor => {
-                const li = document.createElement('li')
-                li.style.cssText = `
-                    padding: 8px 0;
-                    font-size: 0.85rem;
-                    color: #cbd5e1;
-                    border-bottom: 1px solid #334155;
-                `
-                li.textContent = factor
-                factorsList.appendChild(li)
-            })
-            factorsDiv.style.display = 'block'
-        }
+        // Find max impact for scaling the bars
+        const maxImpact = Math.max(...data.shap_explanation.map(s => Math.abs(s.impact)));
 
-        resultCard.scrollIntoView({behavior: 'smooth'})
+        data.shap_explanation.forEach(item => {
+            const absImpact = Math.abs(item.impact);
+            const displayPct = (absImpact / maxImpact * 100).toFixed(1);
+            const color = item.impact > 0 ? '#ef4444' : '#22c55e'; // Red = bad, Green = good
+            const arrow = item.impact > 0 ? '↑' : '↓';
+
+            shapBars.innerHTML += `
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                        <span style="font-size:0.8rem; color:#cbd5e1;">${item.feature.replace(/_/g, ' ')}</span>
+                        <span style="font-size:0.8rem; color:${color}; font-weight:600;">${arrow}</span>
+                    </div>
+                    <div style="background:#0f172a; border-radius:4px; height:8px; overflow:hidden;">
+                        <div style="width:${displayPct}%; height:100%; background:${color}; border-radius:4px; transition:width 1s ease;"></div>
+                    </div>
+                </div>
+            `;
+        });
+        shapDiv.style.display = 'block';
+    } else {
+        shapDiv.style.display = 'none';
     }
+
+    resultCard.scrollIntoView({ behavior: 'smooth' });
+} // <--- Function yahan band hona chahiye
+    // Risk factors ke baad ye add karo
+const shapDiv  = document.getElementById('shapExplanation')
+const shapBars = document.getElementById('shapBars')
+
+if (data.shap_explanation &&
+    data.shap_explanation.length > 0 &&
+    shapDiv && shapBars) {
+
+    shapBars.innerHTML = ''
+
+    // Max impact for scaling
+    const maxImpact = Math.max(
+        ...data.shap_explanation.map(
+            s => s.abs_impact))
+
+    data.shap_explanation.forEach(item => {
+        const pct = (item.abs_impact /
+                     maxImpact * 100).toFixed(1)
+        const color = item.impact > 0
+            ? '#ef4444'   // Red = increases risk
+            : '#22c55e'   // Green = decreases risk
+        const arrow = item.impact > 0 ? '↑' : '↓'
+
+        // Feature name clean karo
+        const cleanName = item.feature
+            .replace(/_/g, ' ')
+            .replace('NAME EDUCATION TYPE', 'Education:')
+            .replace('CODE GENDER M', 'Gender: Male')
+            .replace('FLAG OWN CAR Y', 'Owns Car')
+            .replace('FLAG OWN REALTY Y', 'Owns Property')
+            .replace('NAME CONTRACT TYPE', 'Contract:')
+            .replace('ORG RISK GROUP', 'Org Risk:')
+
+        shapBars.innerHTML += `
+            <div style="margin-bottom:12px;">
+                <div style="display:flex;
+                            justify-content:space-between;
+                            margin-bottom:4px;">
+                    <span style="font-size:0.8rem;
+                                 color:#cbd5e1;">
+                        ${cleanName}
+                    </span>
+                    <span style="font-size:0.8rem;
+                                 color:${color};
+                                 font-weight:600;">
+                        ${arrow} ${item.direction}
+                    </span>
+                </div>
+                <div style="background:#0f172a;
+                            border-radius:4px;
+                            height:8px;
+                            overflow:hidden;">
+                    <div style="width:${pct}%;
+                                height:100%;
+                                background:${color};
+                                border-radius:4px;
+                                transition:width 1s ease;">
+                    </div>
+                </div>
+            </div>
+        `
+    })
+
+    shapDiv.style.display = 'block'
+}
 
     // ============================================
     // Main Predict Function

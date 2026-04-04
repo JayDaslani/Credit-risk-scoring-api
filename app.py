@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import os
 import logging
+import shap
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +41,9 @@ with open('feature_names.json', 'r') as f:
 
 logger.info(f"✅ Model loaded!")
 logger.info(f"✅ Features: {len(feature_names)}")
+print("Loading SHAP explainer...")
+explainer = shap.TreeExplainer(model)
+print("✅ SHAP explainer loaded!")
 
 
 # ============================================
@@ -319,6 +323,52 @@ def predict(application: LoanApplication):
         risk_factors = get_risk_factors(
             application, probability)
 
+        # SHAP Explanation
+        shap_values = explainer.shap_values(input_df)
+
+        # NEW FORMAT handle karo
+        if isinstance(shap_values, list):
+            # Old format — list of arrays
+            sv = shap_values[1][0]
+        else:
+            # New format — single array
+            # Last dimension = default class
+            if len(shap_values.shape) == 3:
+                sv = shap_values[0, :, 1]
+            else:
+                sv = shap_values[0]
+
+        # Top 5 features nikalo
+        feature_names_list = input_df.columns.tolist()
+        shap_dict = dict(zip(feature_names_list, sv))
+
+        # Sort by absolute value
+        sorted_shap = sorted(
+            shap_dict.items(),
+            key=lambda x: abs(x[1]),
+            reverse=True
+        )[:5]
+
+        # Clean format
+        shap_explanation = []
+        for feat, val in sorted_shap:
+            direction = "↑ Increases risk" if val > 0 \
+                else "↓ Decreases risk"
+            shap_explanation.append({
+                "feature": feat,
+                "impact": round(float(val), 4),
+                "direction": direction,
+                "abs_impact": round(abs(float(val)), 4)
+            })
+
+        print(f"DEBUG SHAP: {shap_explanation}")
+        # Debug prints
+        print(f"SHAP values type: {type(shap_values)}")
+        print(f"SHAP values shape: {shap_values.shape if hasattr(shap_values, 'shape') else len(shap_values)}")
+        print(f"SV type: {type(sv)}")
+        print(f"SV shape: {sv.shape if hasattr(sv, 'shape') else len(sv)}")
+        print(f"SHAP explanation: {shap_explanation}")
+
         return {
             "status": "success",
             "probability": round(float(probability), 4),
@@ -327,6 +377,7 @@ def predict(application: LoanApplication):
             "decision": decision,
             "color": color,
             "risk_factors": risk_factors,
+            "shap_explanation": shap_explanation,
             "input_summary": {
                 "age": application.age,
                 "income": application.income,
