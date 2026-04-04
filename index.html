@@ -478,6 +478,9 @@ const NAME_MAP = {
     'APARTMENTS AVG'           : 'Apartment Size',
     'BUREAU RECENT CREDIT'     : 'Recent Credit History',
     'HOUR APPR PROCESS START'  : 'Application Hour',
+    'EXT SOURCE 1'             : 'CIBIL Score (Bureau 1)',
+    'EXT SOURCE 2'             : 'CIBIL Score (Bureau 2)',
+    'EXT SOURCE 3'             : 'CIBIL Score (Bureau 3)',
     'EXT SOURCE MEAN'          : 'Cibil Score (Avg)',
     'EXT SOURCE MIN'           : 'Cibil Score (Min)',
     'EXT SOURCE STD'           : 'Cibil Score Consistency',
@@ -674,70 +677,64 @@ document.getElementById('cibil_score')
 // Main Predict Function
 // ============================================
 async function predict() {
-    const btn        = document.getElementById('predictBtn')
-    const loading    = document.getElementById('loading')
-    const resultCard = document.getElementById('resultCard')
+    const btn = document.getElementById('predictBtn');
+    const loading = document.getElementById('loading');
+    const resultCard = document.getElementById('resultCard');
 
-    btn.disabled            = true
-    btn.textContent         = '⏳ Analyzing...'
-    loading.style.display   = 'block'
-    resultCard.style.display = 'none'
+    // UI state reset
+    btn.disabled = true;
+    btn.textContent = '⏳ Analyzing...';
+    loading.style.display = 'block';
+    resultCard.style.display = 'none';
 
-    const cibil = parseFloat(
-    document.getElementById('cibil_score').value)
-    const ext_score = (cibil - 300) / (900 - 300)
+    // CIBIL scaling (300-900 to 0-1)
+    const cibil = parseFloat(document.getElementById('cibil_score').value);
+    const ext_score = (cibil - 300) / (900 - 300);
 
+    // Payload create karo
     const payload = {
-        age: parseFloat(
-            document.getElementById('age').value),
-        income: parseFloat(
-            document.getElementById('income').value),
-        loan_amount: parseFloat(
-            document.getElementById('loan_amount').value),
-        employed_years: parseFloat(
-            document.getElementById('employed_years').value),
-        credit_term: parseFloat(
-            document.getElementById('credit_term').value),
+        age: parseFloat(document.getElementById('age').value),
+        income: parseFloat(document.getElementById('income').value),
+        loan_amount: parseFloat(document.getElementById('loan_amount').value),
+        employed_years: parseFloat(document.getElementById('employed_years').value),
+        // Note: Check karo ki aapki API 'credit_term' accept karti hai ya nahi
         education: document.getElementById('education').value,
-        gender   : document.getElementById('gender').value,
-        own_car  : document.getElementById('own_car').value,
+        gender: document.getElementById('gender').value,
+        own_car: document.getElementById('own_car').value,
         own_realty: document.getElementById('own_realty').value,
         ext_source_1: ext_score,
         ext_source_2: ext_score,
-        ext_source_3: ext_score,
+        ext_source_3: ext_score
+    };
 
-})
-    }
-
-    const API_URL =
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1' ||
-        window.location.hostname === '0.0.0.0'
+    // URL detection
+    const API_URL = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1'
         ? 'http://127.0.0.1:8000/predict'
-        : 'https://credit-risk-scoring-api-xure.onrender.com/predict'
+        : 'https://credit-risk-scoring-api-xure.onrender.com/predict';
 
     try {
         const response = await fetch(API_URL, {
-            method : 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body   : JSON.stringify(payload)
-        })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-        const data = await response.json()
+        const data = await response.json();
 
         if (!response.ok || data.status === 'error') {
-            showError(data.detail || data.message)
-            return
+            showError(data.detail || data.message || "Input Validation Error");
+            return;
         }
 
-        showResult(data)
+        showResult(data);
 
     } catch (error) {
-        showError(
-            'Cannot connect to server! Please try again.')
+        console.error("Fetch Error:", error);
+        showError('Cannot connect to server! Check internet or if API is awake.');
     } finally {
-        btn.disabled    = false
-        btn.textContent = '🔍 Analyze Credit Risk'
+        btn.disabled = false;
+        btn.textContent = '🔍 Analyze Credit Risk';
     }
 }
 </script>
