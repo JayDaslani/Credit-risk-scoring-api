@@ -258,17 +258,29 @@ def get_risk_factors(
         )
 
     # Credit scores
+    # app.py mein
+    # avg_ext ko CIBIL mein convert karke dikhao
     avg_ext = (data.ext_source_1 +
                data.ext_source_2 +
                data.ext_source_3) / 3
+
+    # CIBIL equivalent
+    cibil_equiv = int(avg_ext * 600 + 300)
+
     if avg_ext < 0.3:
         factors.append(
-            "🔴 Low external credit scores — "
-            "poor credit history"
+            f"🔴 Low CIBIL Score (~{cibil_equiv}) — "
+            f"poor credit history"
         )
     elif avg_ext < 0.45:
         factors.append(
-            "🟡 Below average credit scores"
+            f"🟡 Below average CIBIL Score "
+            f"(~{cibil_equiv})"
+        )
+    elif avg_ext >= 0.6:
+        factors.append(
+            f"🟢 Good CIBIL Score (~{cibil_equiv}) — "
+            f"positive factor"
         )
 
     # Gender

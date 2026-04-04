@@ -356,52 +356,102 @@
         </div>
 
         <!-- Credit Scores -->
-        <div class="card">
-            <h2>📊 External Credit Scores</h2>
-            <div style="display:flex;
-                        flex-direction:column;
-                        gap:20px;">
+        <!-- Purana EXT Source section hatao -->
+<!-- Ye naya section daalo -->
+<div class="card">
+    <h2>📊 Credit Information</h2>
+    <div style="display:flex;
+                flex-direction:column;
+                gap:20px;">
 
-                <div class="slider-group">
-                    <label>
-                        EXT Source 1
-                        <span id="ext1Val">0.50</span>
-                    </label>
-                    <input type="range" id="ext1"
-                           min="0" max="1" step="0.01"
-                           value="0.5"
-                           oninput="document.getElementById(
-                               'ext1Val').textContent =
-                               parseFloat(this.value).toFixed(2)">
+        <div class="form-group">
+            <label>
+                CIBIL Score
+                <span style="color:#64748b;
+                             font-size:0.75rem;">
+                    (300 - 900)
+                </span>
+            </label>
+            <input type="number"
+                   id="cibil_score"
+                   value="700"
+                   min="300"
+                   max="900">
+            <span id="cibilLabel"
+                  style="font-size:0.8rem;
+                         margin-top:4px;">
+            </span>
+        </div>
+
+        <!-- CIBIL Score Guide -->
+        <div style="display:grid;
+                    grid-template-columns: repeat(4,1fr);
+                    gap:8px;
+                    margin-top:4px;">
+            <div style="background:#1c0a0a;
+                        border:1px solid #dc2626;
+                        border-radius:8px;
+                        padding:8px;
+                        text-align:center;">
+                <div style="color:#f87171;
+                            font-weight:600;
+                            font-size:0.8rem;">
+                    300-549
                 </div>
-
-                <div class="slider-group">
-                    <label>
-                        EXT Source 2
-                        <span id="ext2Val">0.50</span>
-                    </label>
-                    <input type="range" id="ext2"
-                           min="0" max="1" step="0.01"
-                           value="0.5"
-                           oninput="document.getElementById(
-                               'ext2Val').textContent =
-                               parseFloat(this.value).toFixed(2)">
+                <div style="color:#94a3b8;
+                            font-size:0.7rem;">
+                    Poor
                 </div>
-
-                <div class="slider-group">
-                    <label>
-                        EXT Source 3
-                        <span id="ext3Val">0.50</span>
-                    </label>
-                    <input type="range" id="ext3"
-                           min="0" max="1" step="0.01"
-                           value="0.5"
-                           oninput="document.getElementById(
-                               'ext3Val').textContent =
-                               parseFloat(this.value).toFixed(2)">
+            </div>
+            <div style="background:#1c1410;
+                        border:1px solid #d97706;
+                        border-radius:8px;
+                        padding:8px;
+                        text-align:center;">
+                <div style="color:#fbbf24;
+                            font-weight:600;
+                            font-size:0.8rem;">
+                    550-649
+                </div>
+                <div style="color:#94a3b8;
+                            font-size:0.7rem;">
+                    Fair
+                </div>
+            </div>
+            <div style="background:#0f1f10;
+                        border:1px solid #16a34a;
+                        border-radius:8px;
+                        padding:8px;
+                        text-align:center;">
+                <div style="color:#4ade80;
+                            font-weight:600;
+                            font-size:0.8rem;">
+                    650-749
+                </div>
+                <div style="color:#94a3b8;
+                            font-size:0.7rem;">
+                    Good
+                </div>
+            </div>
+            <div style="background:#0a1f15;
+                        border:1px solid #059669;
+                        border-radius:8px;
+                        padding:8px;
+                        text-align:center;">
+                <div style="color:#34d399;
+                            font-weight:600;
+                            font-size:0.8rem;">
+                    750-900
+                </div>
+                <div style="color:#94a3b8;
+                            font-size:0.7rem;">
+                    Excellent
                 </div>
             </div>
         </div>
+
+    </div>
+</div>
 
         <!-- Predict Button -->
         <button class="predict-btn"
@@ -428,12 +478,12 @@ const NAME_MAP = {
     'APARTMENTS AVG'           : 'Apartment Size',
     'BUREAU RECENT CREDIT'     : 'Recent Credit History',
     'HOUR APPR PROCESS START'  : 'Application Hour',
-    'EXT SOURCE MEAN'          : 'Credit Score (Avg)',
-    'EXT SOURCE MIN'           : 'Credit Score (Min)',
-    'EXT SOURCE STD'           : 'Credit Score Consistency',
-    'EXT MEAN X AGE'           : 'Credit Score × Age',
-    'EXT MEAN X EMPLOY'        : 'Credit Score × Employment',
-    'EXT MEAN X CREDIT TERM'   : 'Credit Score × Loan Term',
+    'EXT SOURCE MEAN'          : 'Cibil Score (Avg)',
+    'EXT SOURCE MIN'           : 'Cibil Score (Min)',
+    'EXT SOURCE STD'           : 'Cibil Score Consistency',
+    'EXT MEAN X AGE'           : 'Cibil Score × Age',
+    'EXT MEAN X EMPLOY'        : 'Cibil Score × Employment',
+    'EXT MEAN X CREDIT TERM'   : 'Cibil Score × Loan Term',
     'AGE YEARS'                : 'Applicant Age',
     'EMPLOYED YEARS'           : 'Employment Duration',
     'AMT CREDIT'               : 'Loan Amount',
@@ -600,7 +650,26 @@ function showResult(data) {
 
     resultCard.scrollIntoView({behavior: 'smooth'})
 }
+     // CIBIL label update
+document.getElementById('cibil_score')
+    .addEventListener('input', function() {
+    const score = parseInt(this.value)
+    const label = document.getElementById('cibilLabel')
 
+    if (score >= 750) {
+        label.textContent = '✅ Excellent — High approval chance'
+        label.style.color = '#4ade80'
+    } else if (score >= 650) {
+        label.textContent = '🟡 Good — Moderate approval chance'
+        label.style.color = '#fbbf24'
+    } else if (score >= 550) {
+        label.textContent = '🟠 Fair — Lower approval chance'
+        label.style.color = '#fb923c'
+    } else {
+        label.textContent = '🔴 Poor — High rejection risk'
+        label.style.color = '#f87171'
+    }
+})
 // ============================================
 // Main Predict Function
 // ============================================
@@ -613,6 +682,10 @@ async function predict() {
     btn.textContent         = '⏳ Analyzing...'
     loading.style.display   = 'block'
     resultCard.style.display = 'none'
+
+    const cibil = parseFloat(
+    document.getElementById('cibil_score').value)
+    const ext_score = (cibil - 300) / (900 - 300)
 
     const payload = {
         age: parseFloat(
@@ -629,12 +702,11 @@ async function predict() {
         gender   : document.getElementById('gender').value,
         own_car  : document.getElementById('own_car').value,
         own_realty: document.getElementById('own_realty').value,
-        ext_source_1: parseFloat(
-            document.getElementById('ext1').value),
-        ext_source_2: parseFloat(
-            document.getElementById('ext2').value),
-        ext_source_3: parseFloat(
-            document.getElementById('ext3').value),
+        ext_source_1: ext_score,
+        ext_source_2: ext_score,
+        ext_source_3: ext_score,
+
+})
     }
 
     const API_URL =
