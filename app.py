@@ -507,6 +507,7 @@ def predict(application: LoanApplication):
             "decision": decision,
             "color": color,
             "risk_factors": risk_factors,
+            "suggestions": suggestions,
             "shap_explanation": shap_explanation,
             "input_summary": {
                 "age": application.age,

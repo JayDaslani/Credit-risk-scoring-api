@@ -498,24 +498,21 @@
     </div>
 
     <script>
-// ============================================
-// Feature Name Map
-// ============================================
 const NAME_MAP = {
-    'EXT SOURCE 1' : 'CIBIL Score (Bureau 1)',
-    'EXT SOURCE 2' : 'CIBIL Score (Bureau 2)',
-    'EXT SOURCE 3' : 'CIBIL Score (Bureau 3)',
+    'EXT SOURCE 1'             : 'CIBIL Score (Bureau 1)',
+    'EXT SOURCE 2'             : 'CIBIL Score (Bureau 2)',
+    'EXT SOURCE 3'             : 'CIBIL Score (Bureau 3)',
     'ID PUBLISH YEARS'         : 'ID Document Age',
     'CODE GENDER M'            : 'Gender: Male',
     'APARTMENTS AVG'           : 'Apartment Size',
     'BUREAU RECENT CREDIT'     : 'Recent Credit History',
     'HOUR APPR PROCESS START'  : 'Application Hour',
-    'EXT SOURCE MEAN'          : 'Cibil Score (Avg)',
-    'EXT SOURCE MIN'           : 'Cibil Score (Min)',
-    'EXT SOURCE STD'           : 'Cibil Score Consistency',
-    'EXT MEAN X AGE'           : 'Cibil Score × Age',
-    'EXT MEAN X EMPLOY'        : 'Cibil Score × Employment',
-    'EXT MEAN X CREDIT TERM'   : 'Cibil Score × Loan Term',
+    'EXT SOURCE MEAN'          : 'CIBIL Score (Avg)',
+    'EXT SOURCE MIN'           : 'CIBIL Score (Min)',
+    'EXT SOURCE STD'           : 'CIBIL Score Consistency',
+    'EXT MEAN X AGE'           : 'CIBIL Score × Age',
+    'EXT MEAN X EMPLOY'        : 'CIBIL Score × Employment',
+    'EXT MEAN X CREDIT TERM'   : 'CIBIL Score × Loan Term',
     'AGE YEARS'                : 'Applicant Age',
     'EMPLOYED YEARS'           : 'Employment Duration',
     'AMT CREDIT'               : 'Loan Amount',
@@ -550,16 +547,13 @@ function getCleanName(featureName) {
            featureName.replace(/_/g, ' ')
 }
 
-// ============================================
-// Show Error
-// ============================================
 function showError(message) {
     const btn        = document.getElementById('predictBtn')
     const loading    = document.getElementById('loading')
     const resultCard = document.getElementById('resultCard')
 
-    loading.style.display   = 'none'
-    resultCard.className    = 'result-card red'
+    loading.style.display    = 'none'
+    resultCard.className     = 'result-card red'
     resultCard.style.display = 'block'
 
     document.getElementById(
@@ -574,20 +568,14 @@ function showError(message) {
     btn.textContent = '🔍 Analyze Credit Risk'
 }
 
-// ============================================
-// Show Result
-// ============================================
 function showResult(data) {
     const loading    = document.getElementById('loading')
     const resultCard = document.getElementById('resultCard')
 
     loading.style.display = 'none'
-
-    // Color + display
     resultCard.className     = `result-card ${data.color}`
     resultCard.style.display = 'block'
 
-    // Values
     document.getElementById(
         'resultDecision').textContent = data.decision
     document.getElementById(
@@ -597,7 +585,7 @@ function showResult(data) {
 
     // Meter
     const fill = document.getElementById('meterFill')
-    fill.style.width = (data.probability * 100) + '%'
+    fill.style.width      = (data.probability * 100) + '%'
     fill.style.background =
         data.color === 'green'  ? '#16a34a' :
         data.color === 'yellow' ? '#ca8a04' : '#dc2626'
@@ -624,32 +612,31 @@ function showResult(data) {
     } else {
         factorsDiv.style.display = 'none'
     }
+
     // Suggestions
-const suggestionsDiv  = document.getElementById(
-    'suggestions')
-const suggestionsList = document.getElementById(
-    'suggestionsList')
+    const suggestionsDiv  = document.getElementById('suggestions')
+    const suggestionsList = document.getElementById('suggestionsList')
 
-if (data.suggestions &&
-    data.suggestions.length > 0) {
-    suggestionsList.innerHTML = ''
-    data.suggestions.forEach(suggestion => {
-        const li = document.createElement('li')
-        li.style.cssText = `
-            padding: 8px 0;
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            border-bottom: 1px solid #334155;
-        `
-        li.textContent = suggestion
-        suggestionsList.appendChild(li)
-    })
-    suggestionsDiv.style.display = 'block'
-} else {
-    suggestionsDiv.style.display = 'none'
-}
+    if (data.suggestions &&
+        data.suggestions.length > 0) {
+        suggestionsList.innerHTML = ''
+        data.suggestions.forEach(suggestion => {
+            const li = document.createElement('li')
+            li.style.cssText = `
+                padding: 8px 0;
+                font-size: 0.85rem;
+                color: #cbd5e1;
+                border-bottom: 1px solid #334155;
+            `
+            li.textContent = suggestion
+            suggestionsList.appendChild(li)
+        })
+        suggestionsDiv.style.display = 'block'
+    } else {
+        suggestionsDiv.style.display = 'none'
+    }
 
-    // SHAP Explanation
+    // SHAP
     const shapDiv  = document.getElementById('shapExplanation')
     const shapBars = document.getElementById('shapBars')
 
@@ -667,7 +654,6 @@ if (data.suggestions &&
                            maxImpact * 100).toFixed(1)
             const color = item.impact > 0
                 ? '#ef4444' : '#22c55e'
-            const arrow = item.impact > 0 ? '↑' : '↓'
             const name  = getCleanName(item.feature)
 
             shapBars.innerHTML += `
@@ -706,7 +692,8 @@ if (data.suggestions &&
 
     resultCard.scrollIntoView({behavior: 'smooth'})
 }
-     // CIBIL label update
+
+// CIBIL label
 document.getElementById('cibil_score')
     .addEventListener('input', function() {
     const score = parseInt(this.value)
@@ -726,70 +713,72 @@ document.getElementById('cibil_score')
         label.style.color = '#f87171'
     }
 })
-// ============================================
-// Main Predict Function
-// ============================================
+
 async function predict() {
-    const btn = document.getElementById('predictBtn');
-    const loading = document.getElementById('loading');
-    const resultCard = document.getElementById('resultCard');
+    const btn        = document.getElementById('predictBtn')
+    const loading    = document.getElementById('loading')
+    const resultCard = document.getElementById('resultCard')
 
-    // UI state reset
-    btn.disabled = true;
-    btn.textContent = '⏳ Analyzing...';
-    loading.style.display = 'block';
-    resultCard.style.display = 'none';
+    btn.disabled             = true
+    btn.textContent          = '⏳ Analyzing...'
+    loading.style.display    = 'block'
+    resultCard.style.display = 'none'
 
-    // CIBIL scaling (300-900 to 0-1)
-    const cibil = parseFloat(document.getElementById('cibil_score').value);
-    const ext_score = (cibil - 300) / (900 - 300);
+    const cibil     = parseFloat(
+        document.getElementById('cibil_score').value)
+    const ext_score = (cibil - 300) / (900 - 300)
 
-    // Payload create karo
     const payload = {
-        age: parseFloat(document.getElementById('age').value),
-        income: parseFloat(document.getElementById('income').value),
-        loan_amount: parseFloat(document.getElementById('loan_amount').value),
-        contract_type: document.getElementById('contract_type').value,
-        employed_years: parseFloat(document.getElementById('employed_years').value),
-        // Note: Check karo ki aapki API 'credit_term' accept karti hai ya nahi
-        credit_term: parseFloat(document.getElementById('credit_term').value),
-        education: document.getElementById('education').value,
-        gender: document.getElementById('gender').value,
-        own_car: document.getElementById('own_car').value,
-        own_realty: document.getElementById('own_realty').value,
+        age: parseFloat(
+            document.getElementById('age').value),
+        income: parseFloat(
+            document.getElementById('income').value),
+        loan_amount: parseFloat(
+            document.getElementById('loan_amount').value),
+        contract_type: document.getElementById(
+            'contract_type').value,
+        credit_term: parseFloat(
+            document.getElementById('credit_term').value),
+        employed_years: parseFloat(
+            document.getElementById('employed_years').value),
+        education  : document.getElementById('education').value,
+        gender     : document.getElementById('gender').value,
+        own_car    : document.getElementById('own_car').value,
+        own_realty : document.getElementById('own_realty').value,
         ext_source_1: ext_score,
         ext_source_2: ext_score,
-        ext_source_3: ext_score
-    };
+        ext_source_3: ext_score,
+    }
 
-    // URL detection
-    const API_URL = window.location.hostname === 'localhost' ||
-                    window.location.hostname === '127.0.0.1'
+    const API_URL =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '0.0.0.0'
         ? 'http://127.0.0.1:8000/predict'
-        : 'https://credit-risk-scoring-api-xure.onrender.com/predict';
+        : 'https://credit-risk-scoring-api-xure.onrender.com/predict'
 
     try {
         const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+            method : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body   : JSON.stringify(payload)
+        })
 
-        const data = await response.json();
+        const data = await response.json()
 
         if (!response.ok || data.status === 'error') {
-            showError(data.detail || data.message || "Input Validation Error");
-            return;
+            showError(data.detail || data.message ||
+                      "Input Validation Error")
+            return
         }
 
-        showResult(data);
+        showResult(data)
 
     } catch (error) {
-        console.error("Fetch Error:", error);
-        showError('Cannot connect to server! Check internet or if API is awake.');
+        showError('Cannot connect to server! Please try again.')
     } finally {
-        btn.disabled = false;
-        btn.textContent = '🔍 Analyze Credit Risk';
+        btn.disabled    = false
+        btn.textContent = '🔍 Analyze Credit Risk'
     }
 }
 </script>
